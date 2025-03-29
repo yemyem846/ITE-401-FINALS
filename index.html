@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Location App with Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css" />
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: gray;
+            color: #a069ff;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100vh;
+            margin: 0;
+        }
+
+        h1 {
+            font-size: 36px;
+            font-weight: bold;
+            color: rgb(17, 29, 25);
+            margin-bottom: 20px;
+        }
+
+        .location-container {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-start;
+            margin-bottom: 20px;
+            padding-left: 10px;
+        }
+
+        input {
+            padding: 12px;
+            width: 300px;
+            border: 2px solid blue;
+            border-radius: 5px;
+            font-size: 16px;
+            background: yellowgreen;
+            color: rgb(164, 11, 11);
+            text-align: center;
+            outline: none;
+            margin-bottom: 10px;
+        }
+
+        input::placeholder {
+            color: rgba(202, 47, 124, 0.7);
+        }
+
+        button {
+            padding: 12px 25px;
+            background-color: rgb(250, 232, 232);
+            color: rgb(11, 11, 233);
+            border: none;
+            border-radius: 5px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        ul {
+            list-style: none;
+            padding: 0;
+            width: 320px;
+            text-align: center;
+        }
+
+        li {
+            background-color: #504c4c;
+            color: solid blue;
+            padding: 10px;
+            margin: 5px 0;
+            border-radius: 5px;
+            font-size: 18px;
+            text-align: center;
+        }
+
+        #map {
+            height: 500px;
+            width: 80%;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Location App</h1>
+    <div class="location-container">
+        <input type="text" id="locationInput" placeholder="Enter location">
+        <button id="addLocationButton">Add Location</button>
+    </div>
+    <ul id="locationList"></ul>
+    <div id="map"></div>
+
+    <script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"></script>
+    <script>
+        var map = L.map('map').setView([51.505, -0.09], 13);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        function onLocationFound(e) {
+            var radius = e.accuracy / 2;
+            L.marker(e.latlng).addTo(map).bindPopup("You are here").openPopup();
+            L.circle(e.latlng, radius).addTo(map);
+            map.setView(e.latlng, 13);
+        }
+
+        function onLocationError(e) {
+            alert("Location access denied or not available.");
+        }
+
+        map.locate({ setView: true, maxZoom: 16 });
+        map.on('locationfound', onLocationFound);
+        map.on('locationerror', onLocationError);
+
+        const locationInput = document.getElementById("locationInput");
+        const addLocationButton = document.getElementById("addLocationButton");
+        const locationList = document.getElementById("locationList");
+        const locations = [];
+
+        addLocationButton.addEventListener("click", () => {
+            const newLocation = locationInput.value.trim();
+            if (newLocation) {
+                locations.push(newLocation);
+                locationList.innerHTML = "";
+                locations.forEach(location => {
+                    const listItem = document.createElement("li");
+                    listItem.textContent = location;
+                    locationList.appendChild(listItem);
+                });
+                fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(newLocation)}`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data && data[0]) {
+                            const lat = data[0].lat;
+                            const lon = data[0].lon;
+                            map.setView([lat, lon], 13);
+                            L.marker([lat, lon]).addTo(map).bindPopup(newLocation).openPopup();
+                        } else {
+                            alert("Location not found.");
+                        }
+                    })
+                    .catch(error => {
+                        alert("Error fetching location data.");
+                    });
+                locationInput.value = "";
+            }
+        });
+    </script>
+</body>
+
+</html>
